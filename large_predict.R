@@ -526,4 +526,4 @@ bwplot(rvalues,metric="ROC")
 ggplot(rvalues)
 rm(boosttree.alert)
 gc()
-#checking to see if i all pull this over to RStudio
+#2. checking to see if I can directly push to github without committing

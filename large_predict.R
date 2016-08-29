@@ -10,7 +10,7 @@ list.files('.')
 #if you want to load the RData rather than running the models again
 load("predict.RData")
 #we have to remove non essential dataframes
-
+rm(alerts,ID,predict.c5,predict.c5.2,predict.gbm,predict.gbm2, predict.gbm3, predict.gbm4)
 #change the industry to factor
 alerts$industry=factor(alerts$industry)
 #81 levels of indstries

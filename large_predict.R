@@ -9,13 +9,8 @@ library(caret)
 list.files('.')
 #if you want to load the RData rather than running the models again
 load("predict.RData")
-#registerDoParallel(4)
-#getDoParWorkers()
-#load up the file in memory
-alerts=fread("alert_data_aankur.Q1_3months.2016.08.23.csv")
-str(alerts)
-head(alerts,3)
-tail(alerts,3)
+#we have to remove non essential dataframes
+
 #change the industry to factor
 alerts$industry=factor(alerts$industry)
 #81 levels of indstries
@@ -450,7 +445,9 @@ trainalert.y=trainalert$ai_alert_soc_status
 trainalert$ai_alert_soc_status=NULL
 testalert.y=testalert$ai_alert_soc_status
 testalert$ai_alert_soc_status=NULL
-
+trainalert$ai_alert_id=NULL
+testalert$ai_alert_id=NULL
+sum(is.na(testalert))
 boosttree.alert=train(x=trainalert,y=trainalert.y,
                       method="ada",
                       metric="ROC",
@@ -609,8 +606,7 @@ rvalues=resamples(list(xgb.no.customer=xgb.alert,xgb.customer=xgb.alert2,xgb.ale
                        gbm.no.customer=gbm.alert,gbm.customer=gbm.alert2,gbm.more.trees=gbm.alert3,gbm.cust.rule.ind=gbm.alert4,
                        C5=C5.alert,C5.preprocess=C5.alert2,C5.minimal=C5.alert3,C5.all_with_alerttime=C5.alert5,C5.withIndustry=C5.alert4))
 
-library(lattice)
-library(caret)
+
 bwplot(rvalues,metric="ROC")
 dotplot(rvalues,metric="Sens")
 dotplot(rvalues,metric="ROC")

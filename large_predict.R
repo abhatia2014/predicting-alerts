@@ -283,9 +283,9 @@ trainalert$remedy_customer_id=train_customer_ID
 testalert$remedy_customer_id=test_customer_ID
 
 xgb.alert2=train(ai_alert_soc_status~.,data=trainalert,
-                method="xgbTree",
-                metric="ROC",
-                trControl=ctrl)
+                 method="xgbTree",
+                 metric="ROC",
+                 trControl=ctrl)
 xgb.predict.prob2=predict(xgb.alert2,newdata=testalert,type="prob")
 xgb.predict2=predict(xgb.alert2,newdata=testalert)
 confusionMatrix(xgb.predict2,testalert$ai_alert_soc_status)
@@ -331,9 +331,9 @@ testalert=testalert[!is.na(testalert$xps.alert.create.Time),]
 #no NA in test alert
 #we begin training the model
 xgb.alert3=train(ai_alert_soc_status~.,data=trainalert,
-                method="xgbTree",
-                metric="ROC",
-                trControl=ctrl)
+                 method="xgbTree",
+                 metric="ROC",
+                 trControl=ctrl)
 xgb.predict3=predict(xgb.alert3,newdata=testalert)
 
 confusionMatrix(xgb.predict3,testalert$ai_alert_soc_status)
@@ -382,10 +382,10 @@ confusionMatrix(testalert.y,predict.gbm)
 trainalert$remedy_customer_id=train_customer_ID
 testalert$remedy_customer_id=test_customer_ID
 gbm.alert2=train(x=trainalert,y=trainalert.y,
-                method="gbm",
-                metric="ROC",
-                tuneGrid=grid,
-                trControl=ctrl)
+                 method="gbm",
+                 metric="ROC",
+                 tuneGrid=grid,
+                 trControl=ctrl)
 predict.gbm2=predict(gbm.alert2,newdata=testalert)
 confusionMatrix(testalert.y,predict.gbm2)
 #accuracy for the GBM model improved from 71.3% to 75.7% and the sensitivity improved from 70.85% to 76.82%
@@ -393,9 +393,9 @@ confusionMatrix(testalert.y,predict.gbm2)
 #let us try and add more trees and see if the accuracy of the gbm model changes
 
 grid2=expand.grid(interaction.depth=c(1,5,9),
-                 n.trees=(1:30)*50,
-                 shrinkage=c(0.01,0.1),
-                 n.minobsinnode=20)
+                  n.trees=(1:30)*50,
+                  shrinkage=c(0.01,0.1),
+                  n.minobsinnode=20)
 
 gbm.alert3=train(x=trainalert,y=trainalert.y,
                  method="gbm",
@@ -494,26 +494,21 @@ plot(C5.alert)
 trainalert$event_vendors=NULL
 testalert$event_vendors=NULL
 C5.alert2=train(x=trainalert,y=trainalert.y,
-               method='C5.0',
-               metric="ROC",
-               preProcess = "pca",
-               trControl = ctrl)
+                method='C5.0',
+                metric="ROC",
+                preProcess = "pca",
+                trControl = ctrl)
 predict.c5.2=predict(C5.alert2,newdata = testalert)
 predict.c5.2.prob=predict(C5.alert2,newdata = testalert,type="prob")
 confusionMatrix(predict.c5.2,testalert.y)
 varImp(C5.alert2)
 #prediction accuracy of 79.18% and a sensitivity of 89.23% which is great
 
-#let's try one more model- adabag
-adabag.alert=train(x=trainalert,y=trainalert.y,
-                method='AdaBag',
-                metric="ROC",
-                tuneLength = 30,
-                trControl = ctrl)
+
 
 rvalues=resamples(list(xgb.no.customer=xgb.alert,xgb.customer=xgb.alert2,xgb.alertcreate.time=xgb.alert3,
                        gbm.no.customer=gbm.alert,gbm.customer=gbm.alert2,gbm.more.trees=gbm.alert3,gbm.cust.rule.ind=gbm.alert4,
-                       C5=C5.alert,C5.preprocess=C5.alert2))
+                       C5=C5.alert,C5.preprocess=C5.alert2,C5.minimal=C5.alert3,C5.all_with_alerttime=C5.alert5,C5.withIndustry=C5.alert4))
 
 
 dotplot(rvalues,metric="ROC",main="Prediction Capabilities: \n xgboost, GBM, AdaBoost, C5")
@@ -526,4 +521,98 @@ bwplot(rvalues,metric="ROC")
 ggplot(rvalues)
 rm(boosttree.alert)
 gc()
-#2. checking to see if I can directly push to github without committing
+
+#another xgboost model just on customer ID, rulename and xpsalert creation time
+
+empty=which(is.na(trainalert$xps.alert.create.Time))
+trainalert=trainalert[-empty,]
+sum(is.na(trainalert))
+empty=which(is.na(testalert$xps.alert.create.Time))
+testalert=testalert[-empty,]
+sum(is.na(testalert))
+names(trainalert)
+#remove unwanted variables
+trainxgboost=trainalert
+testxgboost=testalert
+
+trainxgboost$ai_alert_id=NULL
+testxgboost$ai_alert_id=NULL
+
+trainxgboost$industry=NULL
+testxgboost$industry=NULL
+
+trainxgboost$src_geo=NULL
+testxgboost$src_geo=NULL
+
+trainxgboost$dst_geo=NULL
+testxgboost$dst_geo=NULL
+
+trainxgboost$event_vendors=NULL
+testxgboost$event_vendors=NULL
+
+train.y=trainxgboost$ai_alert_soc_status
+test.y=testxgboost$ai_alert_soc_status
+trainxgboost$ai_alert_soc_status=NULL
+testxgboost$ai_alert_soc_status=NULL
+
+summary(trainxgboost$xps.alert.create.Time)
+trainxgboost$xps.alert.create.Time[trainxgboost$xps.alert.create.Time<0]=0
+
+trainxgboost$xps.alert.create.Time[trainxgboost$xps.alert.create.Time>86400]=86400
+
+summary(testxgboost$xps.alert.create.Time)
+testxgboost$xps.alert.create.Time[testxgboost$xps.alert.create.Time<0]=0
+
+testxgboost$xps.alert.create.Time[testxgboost$xps.alert.create.Time>86400]=86400
+
+#now create the model -first a gbm- gbm.alert5
+gbm.alert5=train(x=trainxgboost,y=train.y,
+                 method="gbm",
+                 metric="ROC",
+                 tuneGrid=grid,
+                 trControl=ctrl)
+confusionMatrix(predict(gbm.alert5,newdata=testxgboost),test.y)
+
+#accuracy of 75.68%, sensitivity of 88.37% and specificity of 53.58% which is not bad
+
+#lets try predicting through C5 model
+C5.alert3=train(x=trainxgboost,y=train.y,
+                method="C5.0",
+                metric="ROC",
+                trControl=ctrl)
+confusionMatrix(predict(C5.alert3,newdata=testxgboost),test.y)
+
+# very good 78.03% accuracy. 88.4% sensitivity and 59.9% specificity
+
+#create another C5 model with industry this time
+
+C5.alert4=train(x=trainxgboost,y=train.y,
+                method="C5.0",
+                metric="ROC",
+                trControl=ctrl)
+confusionMatrix(predict(C5.alert4,newdata=testxgboost),test.y)
+varImp(C5.alert4)
+#slight increase in accuracy- 78.11% , sensitivity 88.88% and specificity 59.35% which means Industry did not
+#make that much difference
+#let's do one more iteration with all variables
+
+C5.alert5=train(x=trainxgboost,y=train.y,
+                method="C5.0",
+                metric="ROC",
+                trControl=ctrl)
+confusionMatrix(predict(C5.alert5,newdata=testxgboost),test.y)
+roc(predictor=(predict(C5.alert5,newdata=testxgboost,type="prob"))$CLOSED,response=test.y)
+
+#excellent accuracy 79.81% , high sensitivity 87.51% and high specificity- 66.42%
+
+rvalues=resamples(list(xgb.no.customer=xgb.alert,xgb.customer=xgb.alert2,xgb.alertcreate.time=xgb.alert3,
+                       gbm.no.customer=gbm.alert,gbm.customer=gbm.alert2,gbm.more.trees=gbm.alert3,gbm.cust.rule.ind=gbm.alert4,
+                       C5=C5.alert,C5.preprocess=C5.alert2,C5.minimal=C5.alert3,C5.all_with_alerttime=C5.alert5,C5.withIndustry=C5.alert4))
+
+library(lattice)
+library(caret)
+bwplot(rvalues,metric="ROC")
+dotplot(rvalues,metric="Sens")
+dotplot(rvalues,metric="ROC")
+dotplot(rvalues, metric="Spec")
+rvalues$values
